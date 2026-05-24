@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import joblib
 from sklearn.preprocessing import StandardScaler
-from sklearn.mixture import GaussianMixture
+from sklearn.svm import OneClassSVM
 from sklearn.metrics import roc_auc_score, average_precision_score
 
 # ============================================================
@@ -43,13 +43,13 @@ def windows_to_timestep_scores(window_scores, T, window_size, stride=1):
     return timestep_scores
 
 # ============================================================
-# GMM 최종 모델 실행
+# OC-SVM 최종 모델 실행
 # ============================================================
 if __name__ == "__main__":
     W = 30
     S = 1
-    N_COMPONENTS = 20
-    COV_TYPE = 'full'
+    NU = 0.1
+    GAMMA = 'scale'
 
     print("=== [1] 데이터 로드 및 스케일링 ===")
     train_df, feature_cols, _ = load_split("train")
@@ -70,8 +70,8 @@ if __name__ == "__main__":
     val_X   = np.hstack([np.mean(val_windows, axis=1), np.std(val_windows, axis=1)])
     test_X  = np.hstack([np.mean(test_windows, axis=1), np.std(test_windows, axis=1)])
 
-    print("=== [3] 최종 GMM 모델 학습 중 ===")
-    model = GaussianMixture(n_components=N_COMPONENTS, covariance_type=COV_TYPE, random_state=42)
+    print("=== [3] 최종 OC-SVM 모델 학습 중 ===")
+    model = OneClassSVM(kernel='rbf', nu=NU, gamma=GAMMA)
     model.fit(train_X)
 
     print("=== [4] Anomaly Score 계산 및 평가 ===")
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     test_aupr  = average_precision_score(test_labels, test_scores)
 
     # ⭐️ 통일된 표(Table) 출력
-    print("\n=== [5] 🏆 GMM 최종 평가 결과 🏆 ===")
+    print("\n=== [5] 🏆 OC-SVM 최종 평가 결과 🏆 ===")
     print(f"{'':15s} {'AUROC':>8s} {'AUPR':>8s}")
     print(f"{'val':15s} {val_auroc:>8.4f} {val_aupr:>8.4f}")
     print(f"{'test_public':15s} {test_auroc:>8.4f} {test_aupr:>8.4f}")
@@ -96,9 +96,9 @@ if __name__ == "__main__":
     # CSV 및 모델 저장
     os.makedirs("models", exist_ok=True)
     os.makedirs("scores", exist_ok=True)
-    joblib.dump(scaler, "models/gmm_scaler.pkl")
-    joblib.dump(model, "models/gmm_model.pkl")
+    joblib.dump(scaler, "models/ocsvm_scaler.pkl")
+    joblib.dump(model, "models/ocsvm_model.pkl")
 
-    pd.DataFrame({'t': val_df['t'], 'GMM_score': val_scores}).to_csv("scores/gmm_val_scores.csv", index=False)
-    pd.DataFrame({'t': test_df['t'], 'GMM_score': test_scores}).to_csv("scores/gmm_test_scores.csv", index=False)
-    print("➔ GMM 점수(CSV) 저장 완료.")
+    pd.DataFrame({'t': val_df['t'], 'OCSVM_score': val_scores}).to_csv("scores/ocsvm_val_scores.csv", index=False)
+    pd.DataFrame({'t': test_df['t'], 'OCSVM_score': test_scores}).to_csv("scores/ocsvm_test_scores.csv", index=False)
+    print("➔ OC-SVM 점수(CSV) 저장 완료.")
