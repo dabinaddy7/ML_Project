@@ -55,12 +55,6 @@ if __name__ == "__main__":
     X_val_scaled   = scaler.transform(val_df[feature_cols])
     X_test_scaled  = scaler.transform(test_df[feature_cols])
 
-    # 실험할 파라미터 조합
-    window_sizes = [30, 50, 80]
-    n_components_list = [3, 5, 10]
-
-    best_aupr = 0
-    best_params = {}
 
     print("\n=== [본격 실험] 하이퍼파라미터 탐색 시작 ===")
     # 윈도우 크기는 가장 좋았던 30으로 고정!
